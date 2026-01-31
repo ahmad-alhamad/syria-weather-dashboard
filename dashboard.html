@@ -178,23 +178,18 @@ html, body { height:100%; margin:0; font-family:Arial, sans-serif; }
 
 <div id="sidebar">
   <h2>Weather Info</h2>
-
-  <!-- Temperature Scale -->
   <div id="temp-scale">
     <div class="scale-title">Temperature Scale</div>
     <div class="scale-item"><span class="scale-color cold"></span> Cold &lt; 10-15°C</div>
     <div class="scale-item"><span class="scale-color mild"></span> Mild 15–25°C</div>
     <div class="scale-item"><span class="scale-color hot"></span> Hot &gt; 25°C</div>
   </div>
-
   <div id="weather-details">Click on a city</div>
-
   <div id="temp-squares">
     <div class="temp-square" id="square1"></div>
     <div class="temp-square" id="square2"></div>
     <div class="temp-square" id="square3"></div>
   </div>
-
   <canvas id="forecast-chart" height="150"></canvas>
 </div>
 
@@ -367,7 +362,7 @@ document.getElementById('theme-toggle').onclick=()=>{
   map.once('styledata', addCityCircles);
 };
 
-/* AI chat frontend (calls Vercel serverless) */
+/* ------------------ Simple AI Chat ------------------ */
 const chatHeader = document.getElementById('floating-chat-header');
 const chatBody = document.getElementById('floating-chat-body');
 const chatInput = document.getElementById('chat-input');
@@ -380,28 +375,48 @@ chatHeader.addEventListener('click', ()=>{
   document.getElementById('floating-chat-input').style.display = chatMinimized ? 'none' : 'flex';
 });
 
+// Your OpenAI API key (direct use in frontend, be careful: only for testing!)
+const OPENAI_API_KEY = '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';
+
 async function sendMessage(message){
   if(!message) return;
 
+  // Show user message
   const userMsg = document.createElement('div');
   userMsg.textContent = "You: " + message;
-  userMsg.style.marginBottom = '6px';
+  userMsg.style.marginBottom='6px';
   chatBody.appendChild(userMsg);
   chatInput.value='';
 
   try {
-    const response = await fetch('/api/chat',{
+    // Call OpenAI directly
+    const response = await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({message})
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + OPENAI_API_KEY
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages:[{role:'user',content:message}],
+        max_tokens:150
+      })
     });
+
     const data = await response.json();
+
     const botMsg = document.createElement('div');
-    botMsg.textContent = "AI: " + (data.reply || "No reply from AI");
     botMsg.style.marginBottom='6px';
     botMsg.style.color='#00ffcc';
+    if(data.choices && data.choices.length>0){
+      botMsg.textContent = "AI: " + data.choices[0].message.content;
+    } else {
+      botMsg.textContent = "AI: No reply from AI";
+      botMsg.style.color='orange';
+    }
     chatBody.appendChild(botMsg);
     chatBody.scrollTop = chatBody.scrollHeight;
+
   } catch(err){
     console.error(err);
     const errorMsg = document.createElement('div');
@@ -412,9 +427,8 @@ async function sendMessage(message){
 }
 
 chatSend.addEventListener('click', ()=>sendMessage(chatInput.value));
-chatInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') sendMessage(chatInput.value); });
+chatInput.addEventListener('keypress',(e)=>{if(e.key==='Enter') sendMessage(chatInput.value);});
 </script>
 
 </body>
 </html>
-
