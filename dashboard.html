@@ -397,7 +397,7 @@ async function sendMessage(message){
     });
     const data = await response.json();
     const botMsg = document.createElement('div');
-    botMsg.textContent = "AI: " + data.reply;
+    botMsg.textContent = "AI: " + (data.reply || "No reply from AI");
     botMsg.style.marginBottom='6px';
     botMsg.style.color='#00ffcc';
     chatBody.appendChild(botMsg);
@@ -417,3 +417,4 @@ chatInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') sendMessage(ch
 
 </body>
 </html>
+
