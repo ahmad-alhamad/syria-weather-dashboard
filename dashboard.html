@@ -211,6 +211,7 @@ html, body { height:100%; margin:0; font-family:Arial, sans-serif; }
 </div>
 
 <script>
+/* Map & Weather setup */
 mapboxgl.accessToken = 'pk.eyJ1IjoiYWhtYWQtdGVjaCIsImEiOiJjbWY5czYwcjUxaXhrMmlxczZvamlmNm5tIn0.nJnJvwt0e4etH4CvHl0iMw';
 const WEATHER_API_KEY = 'b8978e6145de48af927132212262401';
 
@@ -289,11 +290,7 @@ async function fetchWeather(city, coords){
   const data = await res.json();
 
   const temp = data.current.temp_c;
-  let color;
-  if(temp > 25) color = '#e53935';
-  else if(temp >= 15) color = '#ffeb3b';
-  else color = '#1e88e5';
-
+  let color = temp>25 ? '#e53935' : (temp>=15 ? '#ffeb3b' : '#1e88e5');
   ['square1','square2','square3'].forEach(id=>document.getElementById(id).style.background=color);
 
   document.getElementById('weather-details').innerHTML = `
@@ -307,7 +304,6 @@ async function fetchWeather(city, coords){
   if(window.forecastChart) window.forecastChart.destroy();
   const labels = data.forecast.forecastday.map(d=>d.date);
   const temps = data.forecast.forecastday.map(d=>d.day.avgtemp_c);
-
   window.forecastChart = new Chart(document.getElementById('forecast-chart'),{
     type:'line',
     data:{labels,datasets:[{data:temps,borderColor:'#ff9800',fill:false,tension:0.3}]},
@@ -315,13 +311,11 @@ async function fetchWeather(city, coords){
   });
 }
 
-/* Weather animation with cloud drift */
+/* Weather animation */
 let activeWeather=null;
-
 function animateWeather(city, coords){
   clearWeatherAnimations();
   const layer=document.getElementById('weather-layer');
-
   const cloud=document.createElement('div');
   cloud.textContent='☁️';
   cloud.style.fontSize='60px';
@@ -338,10 +332,7 @@ function animateWeather(city, coords){
       rainDrops.push(d);
     }
   }
-
   activeWeather={cloud,rainDrops,coords};
-
-  // Cloud drift animation
   let drift=0;
   function driftCloud(){
     if(!activeWeather) return;
@@ -350,11 +341,9 @@ function animateWeather(city, coords){
     requestAnimationFrame(driftCloud);
   }
   driftCloud();
-
   updateWeatherPosition();
   map.on('move',updateWeatherPosition);
 }
-
 function updateWeatherPosition(){
   if(!activeWeather) return;
   const p=map.project(activeWeather.coords);
@@ -365,7 +354,6 @@ function updateWeatherPosition(){
     d.style.top=p.y+(Math.random()*30-15)+'px';
   });
 }
-
 function clearWeatherAnimations(){
   document.querySelectorAll('.weather-animation').forEach(e=>e.remove());
   activeWeather=null;
@@ -379,7 +367,7 @@ document.getElementById('theme-toggle').onclick=()=>{
   map.once('styledata', addCityCircles);
 };
 
-/* Floating chat functionality */
+/* AI chat frontend (calls Vercel serverless) */
 const chatHeader = document.getElementById('floating-chat-header');
 const chatBody = document.getElementById('floating-chat-body');
 const chatInput = document.getElementById('chat-input');
@@ -392,9 +380,6 @@ chatHeader.addEventListener('click', ()=>{
   document.getElementById('floating-chat-input').style.display = chatMinimized ? 'none' : 'flex';
 });
 
-// OpenAI API key
-const OPENAI_API_KEY = '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';
-
 async function sendMessage(message){
   if(!message) return;
 
@@ -402,34 +387,32 @@ async function sendMessage(message){
   userMsg.textContent = "You: " + message;
   userMsg.style.marginBottom = '6px';
   chatBody.appendChild(userMsg);
-  chatInput.value=''; // clear input
+  chatInput.value='';
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer ' + OPENAI_API_KEY
-    },
-    body: JSON.stringify({
-      model:"gpt-3.5-turbo",
-      messages:[{role:"user", content:message}],
-      max_tokens:200
-    })
-  });
-
-  const data = await response.json();
-  const botReply = data.choices[0].message.content;
-  const botMsg = document.createElement('div');
-  botMsg.textContent = "AI: " + botReply;
-  botMsg.style.marginBottom='6px';
-  botMsg.style.color='#00ffcc';
-  chatBody.appendChild(botMsg);
-  chatBody.scrollTop = chatBody.scrollHeight;
+  try {
+    const response = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await response.json();
+    const botMsg = document.createElement('div');
+    botMsg.textContent = "AI: " + data.reply;
+    botMsg.style.marginBottom='6px';
+    botMsg.style.color='#00ffcc';
+    chatBody.appendChild(botMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } catch(err){
+    console.error(err);
+    const errorMsg = document.createElement('div');
+    errorMsg.textContent = "AI: Error connecting to server.";
+    errorMsg.style.color='red';
+    chatBody.appendChild(errorMsg);
+  }
 }
 
 chatSend.addEventListener('click', ()=>sendMessage(chatInput.value));
 chatInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') sendMessage(chatInput.value); });
-
 </script>
 
 </body>
