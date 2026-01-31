@@ -5,71 +5,202 @@
 <title>Syria Weather Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+<!-- Mapbox GL JS -->
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 html, body { height:100%; margin:0; font-family:Arial, sans-serif; }
 #map { position:absolute; inset:0; }
 
-#city-name { position:absolute; top:10px; left:50%; transform:translateX(-50%); padding:8px 16px; background:rgba(0,0,0,0.7); color:#fff; font-size:18px; font-weight:bold; border-radius:8px; z-index:5; }
+/* Top city label */
+#city-name {
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:8px 16px;
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  font-size:18px;
+  font-weight:bold;
+  border-radius:8px;
+  z-index:5;
+}
 
-#sidebar { position:absolute; top:60px; left:10px; width:280px; background:linear-gradient(135deg,#1f1f1f,#3b3b3b); color:#fff; padding:15px; border-radius:12px; box-shadow:0 0 12px rgba(0,0,0,0.5); z-index:5; }
+/* Sidebar */
+#sidebar {
+  position:absolute;
+  top:60px;
+  left:10px;
+  width:280px;
+  background:linear-gradient(135deg,#1f1f1f,#3b3b3b);
+  color:#fff;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 0 12px rgba(0,0,0,0.5);
+  z-index:5;
+}
+
 #sidebar h2 { margin-top:0; text-align:center; }
 
-#temp-scale { margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.35); border-radius:8px; font-size:14px; }
+/* Temperature scale */
+#temp-scale {
+  margin-bottom:12px;
+  padding:10px;
+  background:rgba(0,0,0,0.35);
+  border-radius:8px;
+  font-size:14px;
+}
+
 .scale-title { text-align:center; font-weight:bold; margin-bottom:6px; }
+
 .scale-item { display:flex; align-items:center; gap:8px; margin:4px 0; }
+
 .scale-color { width:16px; height:16px; border-radius:4px; }
+
 .scale-color.cold { background:#1e88e5; }
 .scale-color.mild { background:#ffeb3b; }
 .scale-color.hot  { background:#e53935; }
 
 #weather-details { margin-bottom:10px; }
+
+/* Temperature squares */
 #temp-squares { display:flex; justify-content:space-between; margin-top:10px; }
 .temp-square { width:25px; height:25px; background:#555; border-radius:4px; border:1px solid #333; transition:background 0.4s; }
 
-#theme-toggle { position:absolute; top:10px; right:10px; padding:6px 12px; border:none; border-radius:6px; background:#ff9800; font-weight:bold; cursor:pointer; z-index:5; }
+/* Theme button */
+#theme-toggle {
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:6px 12px;
+  border:none;
+  border-radius:6px;
+  background:#ff9800;
+  font-weight:bold;
+  cursor:pointer;
+  z-index:5;
+}
 
-#weather-layer { position:absolute; inset:0; pointer-events:none; z-index:3; }
-.weather-animation { position:absolute; transform:translate(-50%, -50%); }
-.raindrop { width:3px; height:12px; background:#00bfff; border-radius:50%; animation:fall linear infinite; }
-@keyframes fall { 0% { transform:translateY(0); opacity:1; } 100% { transform:translateY(50px); opacity:0; } }
+/* Weather animation */
+#weather-layer {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:3;
+}
 
-#floating-chat { position:fixed; bottom:20px; right:20px; width:280px; background:#2c2c2c; border-radius:12px; box-shadow:0 0 15px rgba(0,0,0,0.5); display:flex; flex-direction:column; z-index:10; }
-#floating-chat-header { padding:10px; background:#ff9800; border-top-left-radius:12px; border-top-right-radius:12px; cursor:pointer; font-weight:bold; text-align:center; color:#fff; }
-#floating-chat-body { padding:10px; height:200px; overflow-y:auto; color:#fff; font-size:14px; }
-#floating-chat-input { display:flex; border-top:1px solid #444; }
-#floating-chat-input input { flex:1; padding:6px; border:none; border-radius:0 0 0 12px; outline:none; }
-#floating-chat-input button { padding:6px 10px; border:none; background:#ff9800; color:#fff; font-weight:bold; cursor:pointer; border-radius:0 0 12px 0; }
+.weather-animation {
+  position:absolute;
+  transform:translate(-50%, -50%);
+}
+
+.raindrop {
+  width:3px;
+  height:12px;
+  background:#00bfff;
+  border-radius:50%;
+  animation:fall linear infinite;
+}
+
+@keyframes fall {
+  0% { transform:translateY(0); opacity:1; }
+  100% { transform:translateY(50px); opacity:0; }
+}
+
+/* Floating AI chat */
+#floating-chat {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:280px;
+  background:#2c2c2c;
+  border-radius:12px;
+  box-shadow:0 0 15px rgba(0,0,0,0.5);
+  display:flex;
+  flex-direction:column;
+  z-index:10;
+}
+
+#floating-chat-header {
+  padding:10px;
+  background:#ff9800;
+  border-top-left-radius:12px;
+  border-top-right-radius:12px;
+  cursor:pointer;
+  font-weight:bold;
+  text-align:center;
+  color:#fff;
+}
+
+#floating-chat-body {
+  padding:10px;
+  height:200px;
+  overflow-y:auto;
+  color:#fff;
+  font-size:14px;
+}
+
+#floating-chat-input {
+  display:flex;
+  border-top:1px solid #444;
+}
+
+#floating-chat-input input {
+  flex:1;
+  padding:6px;
+  border:none;
+  border-radius:0 0 0 12px;
+  outline:none;
+}
+
+#floating-chat-input button {
+  padding:6px 10px;
+  border:none;
+  background:#ff9800;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+  border-radius:0 0 12px 0;
+}
 </style>
 </head>
 
 <body>
+
 <div id="map"></div>
 <div id="weather-layer"></div>
 <div id="city-name">Click a city to see weather</div>
 
 <div id="sidebar">
   <h2>Weather Info</h2>
+
+  <!-- Temperature Scale -->
   <div id="temp-scale">
     <div class="scale-title">Temperature Scale</div>
     <div class="scale-item"><span class="scale-color cold"></span> Cold &lt; 10-15°C</div>
     <div class="scale-item"><span class="scale-color mild"></span> Mild 15–25°C</div>
     <div class="scale-item"><span class="scale-color hot"></span> Hot &gt; 25°C</div>
   </div>
+
   <div id="weather-details">Click on a city</div>
+
   <div id="temp-squares">
     <div class="temp-square" id="square1"></div>
     <div class="temp-square" id="square2"></div>
     <div class="temp-square" id="square3"></div>
   </div>
+
   <canvas id="forecast-chart" height="150"></canvas>
 </div>
 
 <button id="theme-toggle">Toggle Dark/Light</button>
 
+<!-- Floating AI chat HTML -->
 <div id="floating-chat">
   <div id="floating-chat-header">AI Helper</div>
   <div id="floating-chat-body"></div>
@@ -80,6 +211,7 @@ html, body { height:100%; margin:0; font-family:Arial, sans-serif; }
 </div>
 
 <script>
+/* Map & Weather setup */
 mapboxgl.accessToken = 'pk.eyJ1IjoiYWhtYWQtdGVjaCIsImEiOiJjbWY5czYwcjUxaXhrMmlxczZvamlmNm5tIn0.nJnJvwt0e4etH4CvHl0iMw';
 const WEATHER_API_KEY = 'b8978e6145de48af927132212262401';
 
@@ -94,22 +226,50 @@ const cities = [
   { name:'Hasakah', coords:[40.7477,36.5166] }
 ];
 
-const features = cities.map((c,i)=>({type:'Feature',properties:{name:c.name},geometry:{type:'Point', coordinates:c.coords},id:i}));
+const features = cities.map((c,i)=>({
+  type:'Feature',
+  properties:{name:c.name},
+  geometry:{type:'Point', coordinates:c.coords},
+  id:i
+}));
 
 let currentStyle = 'mapbox://styles/mapbox/dark-v11';
-const map = new mapboxgl.Map({container:'map',style:currentStyle,center:[38.9968,34.8021],zoom:6.5,minZoom:6.5,maxZoom:6.5,projection:'globe'});
+const map = new mapboxgl.Map({
+  container:'map',
+  style:currentStyle,
+  center:[38.9968,34.8021],
+  zoom:6.5,
+  minZoom:6.5,
+  maxZoom:6.5,
+  projection:'globe'
+});
 
 function addCityCircles(){
   if(map.getSource('city-centers')) return;
-  map.addSource('city-centers',{type:'geojson',data:{type:'FeatureCollection',features},generateId:true});
-  map.addLayer({id:'city-circles',type:'circle',source:'city-centers',paint:{'circle-radius':60,'circle-color':'#4da6ff','circle-opacity':0.3,'circle-stroke-width':2,'circle-stroke-color':'#003366'}});
+  map.addSource('city-centers',{
+    type:'geojson',
+    data:{type:'FeatureCollection',features},
+    generateId:true
+  });
+  map.addLayer({
+    id:'city-circles',
+    type:'circle',
+    source:'city-centers',
+    paint:{
+      'circle-radius':60,
+      'circle-color':'#4da6ff',
+      'circle-opacity':0.3,
+      'circle-stroke-width':2,
+      'circle-stroke-color':'#003366'
+    }
+  });
 }
 map.on('load', addCityCircles);
 
 map.on('click','city-circles', async (e)=>{
-  const city=e.features[0].properties.name;
-  document.getElementById('city-name').innerText=city;
-  const coords=e.features[0].geometry.coordinates;
+  const city = e.features[0].properties.name;
+  document.getElementById('city-name').innerText = city;
+  const coords = e.features[0].geometry.coordinates;
   await fetchWeather(city, coords);
   animateWeather(city, coords);
 });
@@ -126,18 +286,32 @@ map.on('click',(e)=>{
 
 async function fetchWeather(city, coords){
   const [lon,lat]=coords;
-  const res=await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&days=5`);
-  const data=await res.json();
-  const temp=data.current.temp_c;
-  let color=temp>25?'#e53935':(temp>=15?'#ffeb3b':'#1e88e5');
+  const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&days=5`);
+  const data = await res.json();
+
+  const temp = data.current.temp_c;
+  let color = temp>25 ? '#e53935' : (temp>=15 ? '#ffeb3b' : '#1e88e5');
   ['square1','square2','square3'].forEach(id=>document.getElementById(id).style.background=color);
-  document.getElementById('weather-details').innerHTML=`<strong>${city}</strong><br>Temp: ${temp}°C<br>Humidity: ${data.current.humidity}%<br>Wind: ${data.current.wind_kph} kph<br>Condition: ${data.current.condition.text}`;
+
+  document.getElementById('weather-details').innerHTML = `
+    <strong>${city}</strong><br>
+    Temp: ${temp}°C<br>
+    Humidity: ${data.current.humidity}%<br>
+    Wind: ${data.current.wind_kph} kph<br>
+    Condition: ${data.current.condition.text}
+  `;
+
   if(window.forecastChart) window.forecastChart.destroy();
-  const labels=data.forecast.forecastday.map(d=>d.date);
-  const temps=data.forecast.forecastday.map(d=>d.day.avgtemp_c);
-  window.forecastChart=new Chart(document.getElementById('forecast-chart'),{type:'line',data:{labels,datasets:[{data:temps,borderColor:'#ff9800',fill:false,tension:0.3}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+  const labels = data.forecast.forecastday.map(d=>d.date);
+  const temps = data.forecast.forecastday.map(d=>d.day.avgtemp_c);
+  window.forecastChart = new Chart(document.getElementById('forecast-chart'),{
+    type:'line',
+    data:{labels,datasets:[{data:temps,borderColor:'#ff9800',fill:false,tension:0.3}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}
+  });
 }
 
+/* Weather animation */
 let activeWeather=null;
 function animateWeather(city, coords){
   clearWeatherAnimations();
@@ -147,6 +321,7 @@ function animateWeather(city, coords){
   cloud.style.fontSize='60px';
   cloud.className='weather-animation';
   layer.appendChild(cloud);
+
   const rainDrops=[];
   if(city==='Raqqa'||city==='Hama'){
     for(let i=0;i<15;i++){
@@ -159,48 +334,87 @@ function animateWeather(city, coords){
   }
   activeWeather={cloud,rainDrops,coords};
   let drift=0;
-  function driftCloud(){if(!activeWeather) return; drift+=0.05; activeWeather.cloud.style.transform=`translate(-50%,-50%) translateX(${Math.sin(drift)*20}px)`; requestAnimationFrame(driftCloud);}
+  function driftCloud(){
+    if(!activeWeather) return;
+    drift+=0.05;
+    activeWeather.cloud.style.transform=`translate(-50%,-50%) translateX(${Math.sin(drift)*20}px)`;
+    requestAnimationFrame(driftCloud);
+  }
   driftCloud();
   updateWeatherPosition();
   map.on('move',updateWeatherPosition);
 }
-function updateWeatherPosition(){if(!activeWeather) return; const p=map.project(activeWeather.coords); activeWeather.cloud.style.left=p.x+'px'; activeWeather.cloud.style.top=(p.y-50)+'px'; activeWeather.rainDrops.forEach(d=>{d.style.left=p.x+(Math.random()*60-30)+'px'; d.style.top=p.y+(Math.random()*30-15)+'px';});}
-function clearWeatherAnimations(){document.querySelectorAll('.weather-animation').forEach(e=>e.remove()); activeWeather=null; map.off('move',updateWeatherPosition);}
+function updateWeatherPosition(){
+  if(!activeWeather) return;
+  const p=map.project(activeWeather.coords);
+  activeWeather.cloud.style.left=p.x+'px';
+  activeWeather.cloud.style.top=(p.y-50)+'px';
+  activeWeather.rainDrops.forEach(d=>{
+    d.style.left=p.x+(Math.random()*60-30)+'px';
+    d.style.top=p.y+(Math.random()*30-15)+'px';
+  });
+}
+function clearWeatherAnimations(){
+  document.querySelectorAll('.weather-animation').forEach(e=>e.remove());
+  activeWeather=null;
+  map.off('move',updateWeatherPosition);
+}
 
-document.getElementById('theme-toggle').onclick=()=>{currentStyle=currentStyle.includes('dark')?'mapbox://styles/mapbox/streets-v12':'mapbox://styles/mapbox/dark-v11'; map.setStyle(currentStyle); map.once('styledata', addCityCircles);};
+/* Theme toggle */
+document.getElementById('theme-toggle').onclick=()=>{
+  currentStyle=currentStyle.includes('dark') ? 'mapbox://styles/mapbox/streets-v12' : 'mapbox://styles/mapbox/dark-v11';
+  map.setStyle(currentStyle);
+  map.once('styledata', addCityCircles);
+};
 
-const chatHeader=document.getElementById('floating-chat-header');
-const chatBody=document.getElementById('floating-chat-body');
-const chatInput=document.getElementById('chat-input');
-const chatSend=document.getElementById('chat-send');
-let chatMinimized=false;
-chatHeader.addEventListener('click',()=>{chatMinimized=!chatMinimized; chatBody.style.display=chatMinimized?'none':'block'; document.getElementById('floating-chat-input').style.display=chatMinimized?'none':'flex';});
+/* AI chat frontend (calls Vercel serverless) */
+const chatHeader = document.getElementById('floating-chat-header');
+const chatBody = document.getElementById('floating-chat-body');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
 
-const GROQ_API_KEY='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';
+let chatMinimized = false;
+chatHeader.addEventListener('click', ()=>{
+  chatMinimized = !chatMinimized;
+  chatBody.style.display = chatMinimized ? 'none' : 'block';
+  document.getElementById('floating-chat-input').style.display = chatMinimized ? 'none' : 'flex';
+});
+
 async function sendMessage(message){
   if(!message) return;
-  const userMsg=document.createElement('div'); userMsg.textContent="You: "+message; userMsg.style.marginBottom='6px'; chatBody.appendChild(userMsg); chatInput.value='';
-  try{
-    const response=await fetch('https://api.grok.ai/v1/chat/completions',{
+
+  const userMsg = document.createElement('div');
+  userMsg.textContent = "You: " + message;
+  userMsg.style.marginBottom = '6px';
+  chatBody.appendChild(userMsg);
+  chatInput.value='';
+
+  try {
+    const response = await fetch('/api/chat',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
-      body:JSON.stringify({model:'gpt-3.5-turbo',messages:[{role:'user',content:message}],max_tokens:150})
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message})
     });
-    const data=await response.json();
-    const botMsg=document.createElement('div'); botMsg.style.marginBottom='6px'; botMsg.style.color='#00ffcc';
-    if(data.choices && data.choices.length>0){botMsg.textContent="AI: "+data.choices[0].message.content;}
-    else{botMsg.textContent="AI: No reply from AI"; botMsg.style.color='orange';}
+    const data = await response.json();
+    const botMsg = document.createElement('div');
+    botMsg.textContent = "AI: " + (data.reply || "No reply from AI");
+    botMsg.style.marginBottom='6px';
+    botMsg.style.color='#00ffcc';
     chatBody.appendChild(botMsg);
-    chatBody.scrollTop=chatBody.scrollHeight;
+    chatBody.scrollTop = chatBody.scrollHeight;
   } catch(err){
     console.error(err);
-    const errorMsg=document.createElement('div'); errorMsg.textContent="AI: Error connecting to server."; errorMsg.style.color='red';
+    const errorMsg = document.createElement('div');
+    errorMsg.textContent = "AI: Error connecting to server.";
+    errorMsg.style.color='red';
     chatBody.appendChild(errorMsg);
   }
 }
-chatSend.addEventListener('click',()=>sendMessage(chatInput.value));
-chatInput.addEventListener('keypress',(e)=>{if(e.key==='Enter') sendMessage(chatInput.value);});
+
+chatSend.addEventListener('click', ()=>sendMessage(chatInput.value));
+chatInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') sendMessage(chatInput.value); });
 </script>
 
 </body>
 </html>
+
