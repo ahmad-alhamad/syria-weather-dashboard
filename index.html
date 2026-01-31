@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Syria Weather Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- Mapbox GL JS -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+html, body { height:100%; margin:0; font-family:Arial, sans-serif; }
+#map { position:absolute; inset:0; }
+
+/* Top city label */
+#city-name {
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:8px 16px;
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  font-size:18px;
+  font-weight:bold;
+  border-radius:8px;
+  z-index:5;
+}
+
+/* Sidebar */
+#sidebar {
+  position:absolute;
+  top:60px;
+  left:10px;
+  width:280px;
+  background:linear-gradient(135deg,#1f1f1f,#3b3b3b);
+  color:#fff;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 0 12px rgba(0,0,0,0.5);
+  z-index:5;
+}
+
+#sidebar h2 { margin-top:0; text-align:center; }
+
+/* Temperature scale */
+#temp-scale {
+  margin-bottom:12px;
+  padding:10px;
+  background:rgba(0,0,0,0.35);
+  border-radius:8px;
+  font-size:14px;
+}
+
+.scale-title { text-align:center; font-weight:bold; margin-bottom:6px; }
+
+.scale-item { display:flex; align-items:center; gap:8px; margin:4px 0; }
+
+.scale-color { width:16px; height:16px; border-radius:4px; }
+
+.scale-color.cold { background:#1e88e5; }
+.scale-color.mild { background:#ffeb3b; }
+.scale-color.hot  { background:#e53935; }
+
+#weather-details { margin-bottom:10px; }
+
+/* Temperature squares */
+#temp-squares { display:flex; justify-content:space-between; margin-top:10px; }
+.temp-square { width:25px; height:25px; background:#555; border-radius:4px; border:1px solid #333; transition:background 0.4s; }
+
+/* Theme button */
+#theme-toggle {
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:6px 12px;
+  border:none;
+  border-radius:6px;
+  background:#ff9800;
+  font-weight:bold;
+  cursor:pointer;
+  z-index:5;
+}
+
+/* Weather animation */
+#weather-layer {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:3;
+}
+
+.weather-animation {
+  position:absolute;
+  transform:translate(-50%, -50%);
+}
+
+.raindrop {
+  width:3px;
+  height:12px;
+  background:#00bfff;
+  border-radius:50%;
+  animation:fall linear infinite;
+}
+
+@keyframes fall {
+  0% { transform:translateY(0); opacity:1; }
+  100% { transform:translateY(50px); opacity:0; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+<div id="weather-layer"></div>
+<div id="city-name">Click a city to see weather</div>
+
+<div id="sidebar">
+  <h2>Weather Info</h2>
+
+  <!-- Temperature Scale -->
+  <div id="temp-scale">
+    <div class="scale-title">Temperature Scale</div>
+    <div class="scale-item"><span class="scale-color cold"></span> Cold &lt; 10°C</div>
+    <div class="scale-item"><span class="scale-color mild"></span> Mild 15–25°C</div>
+    <div class="scale-item"><span class="scale-color hot"></span> Hot &gt; 25°C</div>
+  </div>
+
+  <div id="weather-details">Click on a city</div>
+
+  <div id="temp-squares">
+    <div class="temp-square" id="square1"></div>
+    <div class="temp-square" id="square2"></div>
+    <div class="temp-square" id="square3"></div>
+  </div>
+
+  <canvas id="forecast-chart" height="150"></canvas>
+</div>
+
+<button id="theme-toggle">Toggle Dark/Light</button>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiYWhtYWQtdGVjaCIsImEiOiJjbWY5czYwcjUxaXhrMmlxczZvamlmNm5tIn0.nJnJvwt0e4etH4CvHl0iMw';
+const WEATHER_API_KEY = 'b8978e6145de48af927132212262401';
+
+const cities = [
+  { name:'Damascus', coords:[36.2765,33.5147] },
+  { name:'Aleppo', coords:[37.1343,36.2021] },
+  { name:'Homs', coords:[36.7137,34.7324] },
+  { name:'Hama', coords:[36.7578,35.1318] },
+  { name:'Daraa', coords:[36.1021,32.6255] },
+  { name:'Raqqa', coords:[39.0196,35.9506] },
+  { name:'Deir Ezzor', coords:[40.1408,35.3359] },
+  { name:'Hasakah', coords:[40.7477,36.5166] }
+];
+
+const features = cities.map((c,i)=>({
+  type:'Feature',
+  properties:{name:c.name},
+  geometry:{type:'Point', coordinates:c.coords},
+  id:i
+}));
+
+let currentStyle = 'mapbox://styles/mapbox/dark-v11';
+const map = new mapboxgl.Map({
+  container:'map',
+  style:currentStyle,
+  center:[38.9968,34.8021],
+  zoom:6.5,
+  minZoom:6.5,
+  maxZoom:6.5,
+  projection:'globe'
+});
+
+function addCityCircles(){
+  if(map.getSource('city-centers')) return;
+  map.addSource('city-centers',{
+    type:'geojson',
+    data:{type:'FeatureCollection',features},
+    generateId:true
+  });
+  map.addLayer({
+    id:'city-circles',
+    type:'circle',
+    source:'city-centers',
+    paint:{
+      'circle-radius':60,
+      'circle-color':'#4da6ff',
+      'circle-opacity':0.3,
+      'circle-stroke-width':2,
+      'circle-stroke-color':'#003366'
+    }
+  });
+}
+map.on('load', addCityCircles);
+
+map.on('click','city-circles', async (e)=>{
+  const city = e.features[0].properties.name;
+  document.getElementById('city-name').innerText = city;
+  const coords = e.features[0].geometry.coordinates;
+  await fetchWeather(city, coords);
+  animateWeather(city, coords);
+});
+
+map.on('click',(e)=>{
+  if(!map.queryRenderedFeatures(e.point,{layers:['city-circles']}).length){
+    document.getElementById('city-name').innerText='Click a city to see weather';
+    document.getElementById('weather-details').innerText='Click on a city';
+    ['square1','square2','square3'].forEach(id=>document.getElementById(id).style.background='#555');
+    if(window.forecastChart) window.forecastChart.destroy();
+    clearWeatherAnimations();
+  }
+});
+
+async function fetchWeather(city, coords){
+  const [lon,lat]=coords;
+  const res = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&days=5`);
+  const data = await res.json();
+
+  const temp = data.current.temp_c;
+  let color;
+  if(temp > 25) color = '#e53935';
+  else if(temp >= 15) color = '#ffeb3b';
+  else color = '#1e88e5';
+
+  ['square1','square2','square3'].forEach(id=>document.getElementById(id).style.background=color);
+
+  document.getElementById('weather-details').innerHTML = `
+    <strong>${city}</strong><br>
+    Temp: ${temp}°C<br>
+    Humidity: ${data.current.humidity}%<br>
+    Wind: ${data.current.wind_kph} kph<br>
+    Condition: ${data.current.condition.text}
+  `;
+
+  if(window.forecastChart) window.forecastChart.destroy();
+  const labels = data.forecast.forecastday.map(d=>d.date);
+  const temps = data.forecast.forecastday.map(d=>d.day.avgtemp_c);
+
+  window.forecastChart = new Chart(document.getElementById('forecast-chart'),{
+    type:'line',
+    data:{labels,datasets:[{data:temps,borderColor:'#ff9800',fill:false,tension:0.3}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}
+  });
+}
+
+/* Weather animation with cloud drift */
+let activeWeather=null;
+
+function animateWeather(city, coords){
+  clearWeatherAnimations();
+  const layer=document.getElementById('weather-layer');
+
+  const cloud=document.createElement('div');
+  cloud.textContent='☁️';
+  cloud.style.fontSize='60px';
+  cloud.className='weather-animation';
+  layer.appendChild(cloud);
+
+  const rainDrops=[];
+  if(city==='Raqqa'||city==='Hama'){
+    for(let i=0;i<15;i++){
+      const d=document.createElement('div');
+      d.className='raindrop weather-animation';
+      d.style.animationDuration=(0.8+Math.random())+'s';
+      layer.appendChild(d);
+      rainDrops.push(d);
+    }
+  }
+
+  activeWeather={cloud,rainDrops,coords};
+
+  // Cloud drift animation
+  let drift=0;
+  function driftCloud(){
+    if(!activeWeather) return;
+    drift+=0.05;
+    activeWeather.cloud.style.transform=`translate(-50%,-50%) translateX(${Math.sin(drift)*20}px)`;
+    requestAnimationFrame(driftCloud);
+  }
+  driftCloud();
+
+  updateWeatherPosition();
+  map.on('move',updateWeatherPosition);
+}
+
+function updateWeatherPosition(){
+  if(!activeWeather) return;
+  const p=map.project(activeWeather.coords);
+  activeWeather.cloud.style.left=p.x+'px';
+  activeWeather.cloud.style.top=(p.y-50)+'px';
+  activeWeather.rainDrops.forEach(d=>{
+    d.style.left=p.x+(Math.random()*60-30)+'px';
+    d.style.top=p.y+(Math.random()*30-15)+'px';
+  });
+}
+
+function clearWeatherAnimations(){
+  document.querySelectorAll('.weather-animation').forEach(e=>e.remove());
+  activeWeather=null;
+  map.off('move',updateWeatherPosition);
+}
+
+/* Theme toggle */
+document.getElementById('theme-toggle').onclick=()=>{
+  currentStyle=currentStyle.includes('dark') ? 'mapbox://styles/mapbox/streets-v12' : 'mapbox://styles/mapbox/dark-v11';
+  map.setStyle(currentStyle);
+  map.once('styledata', addCityCircles);
+};
+</script>
+
+</body>
+</html>
