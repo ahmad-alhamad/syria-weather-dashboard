@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
+const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
@@ -9,27 +9,30 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ error: "No message provided" });
-  }
-
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: message }
-      ],
-      max_tokens: 200
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "No message provided" });
+    }
+
+    const response = await client.responses.create({
+      model: "gpt-4.1-mini",
+      input: message
     });
 
-    return res.status(200).json({
-      reply: completion.choices[0].message.content
-    });
+    const reply =
+      response.output_text ||
+      response.output?.[0]?.content?.[0]?.text ||
+      null;
 
+    if (!reply) {
+      return res.status(500).json({ error: "Empty response from OpenAI" });
+    }
+
+    res.status(200).json({ reply });
   } catch (err) {
-    console.error("OpenAI error:", err);
-    return res.status(500).json({ error: "OpenAI request failed" });
+    console.error("OpenAI ERROR:", err);
+    res.status(500).json({ error: "OpenAI request failed" });
   }
 }
