@@ -1,8 +1,0 @@
-{
-  "name": "syria-weather-dashboard",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "openai": "^4.10.0"
-  }
-}
